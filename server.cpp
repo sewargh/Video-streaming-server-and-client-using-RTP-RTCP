@@ -25,7 +25,7 @@ struct RTPpkt
     char data[10000];
 
 };
-
+// takes one argument which is the port number
 int main(int argc, char const *argv[])
 {
     int PortNum = atoi(argv[1]);
@@ -39,12 +39,8 @@ int main(int argc, char const *argv[])
     // returns zero if creation succes else -1
     int Socket_Server = socket(AF_INET, SOCK_DGRAM, 0);
     // should we use handle_error("socket");?
-    if (Socket_Server == -1){cout << "error in creation socket.\n**** EXIT ****\n";return 0;}
+    if (Socket_Server == -1){cout << "Error in creation socket.\n**** EXIT ****\n";return 0;}
 
-    //int setsocketerr = setsockopt(Socket_Server, SOL_SOCKET,SO_REUSEADDR, &opt,sizeof(opt));
-    //if (setsocketerr == -1){cout << "error in set socket reuseadd.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
-    //setsocketerr = setsockopt(Socket_Server, SOL_SOCKET,SO_REUSEPORT, &opt,sizeof(opt));
-    //if (setsocketerr == -1){cout << "error in set socket reuseport.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
     memset(&ServerAddr, 0, sizeof(ServerAddr));
     ServerAddr.sin_family = AF_INET;
     ServerAddr.sin_addr.s_addr = INADDR_ANY;
@@ -60,9 +56,9 @@ int main(int argc, char const *argv[])
     //if (listenerr == -1){cout << "error in server listening.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
 
     RTPpkt ACKrtp;
-    memcpy(ACKrtp.data,"hello for Server ^^",sizeof(ACKrtp.data));
+    memcpy(ACKrtp.data,"hello from Server ^^",sizeof(ACKrtp.data));
     cout << "sizeof : " <<sizeof(ACKrtp.data) << " daata: " << ACKrtp.data<<endl;
-    memset(&ACKrtp, 0, sizeof(ACKrtp));
+    //memset(&ACKrtp, 0, sizeof(ACKrtp));
     //UDP sockets do not have an 'accept' call for server applications.
     while(1)
         {
@@ -72,8 +68,9 @@ int main(int argc, char const *argv[])
             cout<<"Waiting on port " << PortNum << endl;
             BytesRead = recvfrom(Socket_Server,Buffer,10000,0,(struct sockaddr*)&ClientAddr,&ClientAddLen);
             Buffer[BytesRead]=0;
+            cout << "client port number : " << ClientAddr.sin_port << endl;
             cout << "number of bytes read " << BytesRead << "\ndata read is " << Buffer << endl; 
-            sendto(Socket_Server, ACKrtp.data, sizeof(ACKrtp.data), 0, (struct sockaddr*)&ClientAddr,ClientAddLen);
+            sendto(Socket_Server, &ACKrtp, sizeof(ACKrtp), 0, (struct sockaddr*)&ClientAddr,ClientAddLen);
             cout << "SUCCESS!!" <<endl; return 0;
 
         }
