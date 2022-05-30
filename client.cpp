@@ -26,26 +26,20 @@ struct RTPpkt
     char data[1024];
 
 };
-
+// Takes 2 arguments 1: server ip, 2: server port
 int main(int argc, char const *argv[])
 {
     int PortNumServer = atoi(argv[2]);
     char Buffer[10000];
     int opt = 1;
-    // use sockaddr_in ?
     struct sockaddr_in ClientAddr, ServerAddr; //socket file descriptor for the server to connect to.
     int AddrLen = sizeof(ClientAddr);
     socklen_t AddSenderLen;
     // socket creation -- 1_ communication domain. 2_ comm type (UDP). 3_ protocol.
     // returns zero if creation succes else -1
     int Socket_Client = socket(AF_INET, SOCK_DGRAM, 0);
-    // should we use handle_error("socket");?
     if (Socket_Client == -1){cout << "Error in creation socket.\n**** EXIT ****\n";return 0;}
 
-    //int setsocketerr = setsockopt(Socket_Client, SOL_SOCKET,SO_REUSEADDR, &opt,sizeof(opt));
-    //if (setsocketerr == -1){cout << "error in set socket reuseadd.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
-    //setsocketerr = setsockopt(Socket_Client, SOL_SOCKET,SO_REUSEPORT, &opt,sizeof(opt));
-    //if (setsocketerr == -1){cout << "error in set socket reuseport.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
     memset(&ServerAddr, 0, sizeof(ServerAddr));
     ServerAddr.sin_family = AF_INET;
     ServerAddr.sin_addr.s_addr = INADDR_ANY;
@@ -81,9 +75,10 @@ int main(int argc, char const *argv[])
     AddSenderLen = sizeof (ServerAddr);
     char request [] = "Hi  Sewar, I'm Rufaida";
     sendto(Socket_Client, request, sizeof(request), 0, (struct sockaddr *)&ServerAddr, (socklen_t)AddSenderLen );
-    BytesRead = recvfrom(Socket_Client,Buffer,10000,0,NULL,NULL);
-    Buffer[BytesRead]=0;
-    cout << "client received : " << Buffer << endl;
+    RTPpkt reveivedpkt;
+    BytesRead = recvfrom(Socket_Client,&reveivedpkt,10000,0,NULL,NULL);
+    //Buffer[BytesRead]=0;
+    cout << "client received : " << reveivedpkt.data << endl;
 
     //static int HeaderSize = 12;
     //pthread_t Threads[MaxThreads];
