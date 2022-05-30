@@ -54,9 +54,12 @@ int main(int argc, char const *argv[])
     //how many request max ? 1? 
     //int listenerr = listen(Socket_Server,3);
     //if (listenerr == -1){cout << "error in server listening.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
-
+    
     RTPpkt ACKrtp;
+    ACKrtp.CC |= 1UL << 0;ACKrtp.CC |= 1UL << 1;
+    
     memcpy(ACKrtp.data,"hello from Server ^^",sizeof(ACKrtp.data));
+    cout << "CC = : " << ACKrtp.CC <<endl;
     cout << "sizeof : " <<sizeof(ACKrtp.data) << " daata: " << ACKrtp.data<<endl;
     //memset(&ACKrtp, 0, sizeof(ACKrtp));
     //UDP sockets do not have an 'accept' call for server applications.
