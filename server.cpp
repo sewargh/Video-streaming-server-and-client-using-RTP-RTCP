@@ -7,7 +7,9 @@
 
 #include <pthread.h>
 #include <thread>
+#include "CImg.h"
 
+using namespace cimg_library;
 using namespace std;
 //#define PortNum 5000
 #define MaxThreads 10
@@ -23,7 +25,6 @@ struct RTPpkt
     int Timestamp;
     int SSRC;
     char data[10000];
-
 };
 // takes one argument which is the port number
 int main(int argc, char const *argv[])
@@ -31,73 +32,80 @@ int main(int argc, char const *argv[])
     int PortNum = atoi(argv[1]);
     char Buffer[10000];
     int opt = 1;
-    // use sockaddr_in ?
-    struct sockaddr_in ServerAddr,ClientAddr; //socket file descriptor for the server to connect to.
+
+    struct sockaddr_in ServerAddr; // socket file descriptor for the server to connect to.
+    struct sockaddr_in ClientAddr;
     int AddrLen = sizeof(ServerAddr);
     socklen_t ClientAddLen;
-    // socket creation -- 1_ communication domain. 2_ comm type (UDP). 3_ protocol.
-    // returns zero if creation succes else -1
-    int Socket_Server = socket(AF_INET, SOCK_DGRAM, 0);
-    // should we use handle_error("socket");?
-    if (Socket_Server == -1){cout << "Error in creation socket.\n**** EXIT ****\n";return 0;}
+    /******** Create A Socket To Communicate With Server **********/
+    int Socket_Server = socket(AF_INET, SOCK_DGRAM, 0); // returns zero if creation succes else -1
+    if (Socket_Server == -1)
+    {
+        cout << "Error in set socket reuseadd. SORRY!\n"
+             << strerror(errno) << "\n**** EXIT ****\n";
+        return 0;
+    }
 
+    /******** Create An Address For Server To Communicate **********/
     memset(&ServerAddr, 0, sizeof(ServerAddr));
     ServerAddr.sin_family = AF_INET;
     ServerAddr.sin_addr.s_addr = INADDR_ANY;
     ServerAddr.sin_port = htons(PortNum);
-    // assgin name to a asocket. attaching socket to the port 5000
-    //(struct sockaddr *) &address --> convert if initialize it as sockaddr_in
-    // returns zero if creation succes else -1
-    int binderr = bind(Socket_Server, (struct sockaddr*)&ServerAddr, AddrLen);
-    if (binderr == -1){cout << "error in binding socket.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
-    //puts the server socket in a passive mode, where it waits for the client to approach the server to make a connection.
-    //how many request max ? 1? 
-    //int listenerr = listen(Socket_Server,3);
-    //if (listenerr == -1){cout << "error in server listening.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
-    
+
+    /******** Bind Address To Socket **********/
+    int binderr = bind(Socket_Server, (struct sockaddr *)&ServerAddr, AddrLen); // returns zero if creation succes else -1
+    if (binderr == -1)
+    {
+        cout << "Error in binding socket. SORRY!\n"
+             << strerror(errno) << "\n**** EXIT ****\n";
+        return 0;
+    }
+    // puts the server socket in a passive mode, where it waits for the client to approach the server to make a connection.
     RTPpkt ACKrtp;
-    ACKrtp.CC |= 1UL << 0;ACKrtp.CC |= 1UL << 1;
+    memset(&ACKrtp, 0, sizeof(ACKrtp));
+    ACKrtp.CC |= 1UL << 0;
+    ACKrtp.CC |= 1UL << 1;
+
+    memcpy(ACKrtp.data, "Hello from Server !\n", sizeof(ACKrtp.data));
+
+    /******** Listen To The Port to Any Connection **********/
+    //while (1)
     
-    memcpy(ACKrtp.data,"hello from Server ^^",sizeof(ACKrtp.data));
-    cout << "CC = : " << ACKrtp.CC <<endl;
-    cout << "sizeof : " <<sizeof(ACKrtp.data) << " daata: " << ACKrtp.data<<endl;
-    //memset(&ACKrtp, 0, sizeof(ACKrtp));
-    //UDP sockets do not have an 'accept' call for server applications.
-    while(1)
+        // Block until receive message from a client
+        ClientAddLen = sizeof(ClientAddr);
+        int BytesRead;
+        cout << "Waiting on port " << PortNum << endl;
+        BytesRead = recvfrom(Socket_Server, Buffer, 10000, 0, (struct sockaddr *)&ClientAddr, &ClientAddLen);
+        Buffer[BytesRead] = 0;
+        cout << "#of read bytes = " << BytesRead << "\nData is : -" << Buffer << endl;
+        sendto(Socket_Server, &ACKrtp, sizeof(ACKrtp), 0, (struct sockaddr *)&ClientAddr, ClientAddLen);
+
+        // CImgDisplay disp;
+        for (int i = 1; i <= 500; i++)
         {
-            // Block until receive message from a client
-            ClientAddLen = sizeof (ClientAddr);
-            int BytesRead;
-            cout<<"Waiting on port " << PortNum << endl;
-            BytesRead = recvfrom(Socket_Server,Buffer,10000,0,(struct sockaddr*)&ClientAddr,&ClientAddLen);
-            Buffer[BytesRead]=0;
-            cout << "client port number : " << ClientAddr.sin_port << endl;
-            cout << "number of bytes read " << BytesRead << "\ndata read is " << Buffer << endl; 
-            sendto(Socket_Server, &ACKrtp, sizeof(ACKrtp), 0, (struct sockaddr*)&ClientAddr,ClientAddLen);
-            cout << "SUCCESS!!" <<endl; return 0;
+            char name[1000];
 
+            sprintf(name, "vid/image%03d.jpg", i);
+            CImg<unsigned char> img(name);
+            if (sendto(Socket_Server, img, sizeof(img), 0, (struct sockaddr *)&ServerAddr, (socklen_t)AddrLen) == -1)
+            {
+                cout << "Error in sending frame #" << i << " SORRY!\n"
+                     << strerror(errno) << "\n**** EXIT ****\n";
+                return 0;
+            }
+            // disp=img;
+            usleep(30000);
         }
-    //creates a new connected socket, and returns a new file descriptor referring to that socket
-    //int acceptsocket = accept(Socket_Server,(struct sockaddr*)&ServerAddr, (socklen_t*)& AddrLen);
-    //if (acceptsocket == -1){cout << "error in acceptsocket.\n" << strerror(errno) << "\n**** EXIT ****\n";return 0;}
-    //close(acceptsocket);
+    
 
-
-//is the thread used for sending the images ?
-    //thread t(&thread_function);
-
-    //static int HeaderSize = 12;
-    cout << "Create thread \n";
-    pthread_t Threads[MaxThreads];
-    pthread_mutex_t MutexThreads[MaxThreads];
-    //pthread_cond_t threads_cond[MaxThreads];		// cond wait array.
-    //int threads_state[MaxThreads];	
-
-
-
+    // static int HeaderSize = 12;
+    // cout << "Create thread \n";
+    // pthread_t Threads[MaxThreads];
+    // pthread_mutex_t MutexThreads[MaxThreads];
+    // pthread_cond_t threads_cond[MaxThreads];		// cond wait array.
+    // int threads_stat[MaxThreads];
 
     shutdown(Socket_Server, SHUT_RDWR);
-
 
     return 0;
 }
