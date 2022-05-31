@@ -8,7 +8,8 @@
 
 #include <pthread.h>
 #include <thread>
-
+#include"CImg.h" 
+using namespace cimg_library;
 using namespace std;
 #define PortNum 2000
 #define MaxThreads 10
@@ -27,10 +28,10 @@ struct RTPpkt
 
 };
 // Takes 2 arguments 1: server ip, 2: server port
+
 int main(int argc, char const *argv[])
 {
     int PortNumServer = atoi(argv[2]);
-    char Buffer[10000];
     int opt = 1;
     struct sockaddr_in ClientAddr, ServerAddr; //socket file descriptor for the server to connect to.
     int AddrLen = sizeof(ClientAddr);
@@ -71,15 +72,25 @@ int main(int argc, char const *argv[])
 
 //is the thread used for sending the images ?
     //thread t(&thread_function);
-    int BytesRead;
+    int BytesRead, FrameRead;
     AddSenderLen = sizeof (ServerAddr);
     char request [] = "Hi  Sewar, I'm Rufaida";
     sendto(Socket_Client, request, sizeof(request), 0, (struct sockaddr *)&ServerAddr, (socklen_t)AddSenderLen );
     RTPpkt reveivedpkt;
-    BytesRead = recvfrom(Socket_Client,&reveivedpkt,10000,0,NULL,NULL);
+   // BytesRead = recvfrom(Socket_Client,&reveivedpkt,10000,0,NULL,NULL);
     //Buffer[BytesRead]=0;
     cout << "client received : " << reveivedpkt.data << endl;
 
+    CImgDisplay disp;
+    for(int i=1;i<=500;i++){
+      char name[1000];
+     
+      sprintf(name,"vid/image%03d.jpg",i);
+      CImg<unsigned char>img(name);
+      FrameRead = recvfrom(Socket_Client,name,1000,0, (struct sockaddr *)&ServerAddr, &AddSenderLen );
+      disp=img;
+      usleep(30000);
+    }
     //static int HeaderSize = 12;
     //pthread_t Threads[MaxThreads];
     //pthread_mutex_t MutexThreads[MaxThreads];
@@ -94,3 +105,4 @@ int main(int argc, char const *argv[])
 
     return 0;
 }
+
