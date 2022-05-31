@@ -1,4 +1,3 @@
-# multimedia-project
 Don't forget to add vid file to your working code directory.
 # To compile client.cpp:
 g++ client.cpp client
