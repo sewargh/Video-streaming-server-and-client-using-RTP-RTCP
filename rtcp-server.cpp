@@ -168,11 +168,11 @@ rtcp_sr.octsent = numoctsent;
 rtcp_sr.ntp_secfrac = time(NULL) + 2208988800;
 rtcp_sr.rtp_ts = time(NULL);
  
-if (sendto(Socket_Server, &rtcp_sr, sizeof(rtcp_sr), 0, (struct sockaddr *)&ServerAddr, (socklen_t)AddrLen) == -1) {
+if (sendto(Socket_Server, &rtcp_sr, sizeof(rtcp_sr), 0, (struct sockaddr *)&ClientAddr, ClientAddLen) == -1) {
             cout << "Error in sending RTCP SR packet "<< " SORRY!\n"<< strerror(errno) << "\n**** EXIT ****\n"<<endl;
             return 0; }
 if (flag == true) {
-    if (sendto(Socket_Server, &rtcp_bye, sizeof(rtcp_bye), 0, (struct sockaddr *)&ServerAddr, (socklen_t)AddrLen) == -1){
+    if (sendto(Socket_Server, &rtcp_sr, sizeof(rtcp_sr), 0, (struct sockaddr *)&ClientAddr, ClientAddLen) == -1){
             cout << "Error in sending RTCP BYE packet" << " SORRY!\n"<< strerror(errno) << "\n**** EXIT ****\n"<<endl;
             return 0; }}
 
