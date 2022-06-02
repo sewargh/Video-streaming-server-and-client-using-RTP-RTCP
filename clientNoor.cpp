@@ -22,29 +22,35 @@ using namespace std;
 // Takes 3 arguments 1: server ip, 2: server port for rtsp, 3: moviename
 int main(int argc, char const *argv[])
 {
-    int rtpPOrt = 2000;
-    memset(&rtsp_clipkt, 0, sizeof(rtsp_clipkt));
-    memcpy(&rtsp_clipkt.moviename, argv[3], sizeof(argv[3]));
-    cout << "moviename1 " << rtsp_clipkt.moviename << endl;
-    int RTSP_Client_PortNum = atoi(argv[2]);
-    struct sockaddr_in ClientRTSP_Addr;
-    struct sockaddr_in ServerRTSP_Addr;
-    int RTSP_AddrLen = sizeof(ClientRTSP_Addr);
-    int RTSP_Socket_Server = socket(AF_INET, SOCK_STREAM, 0);
+    int RTSP_PortNumServer = atoi(argv[2]);
+    struct sockaddr_in RTSP_ClientAddr, RTSP_ServerAddr; // socket file descriptor for the server to connect to.
+    int RTSP_AddrLen = sizeof(RTSP_ClientAddr);
+    socklen_t RTSP_AddSenderLen;
+    int RTSP_Socket_Client = socket(AF_INET, SOCK_DGRAM, 0);
+    if (RTSP_Socket_Client == -1)
+    {
+        cout << "Error in socket creation.\n**** EXIT ****\n";
+        return 0;
+    }
 
-    memset(&ServerRTSP_Addr, 0, sizeof(ServerRTSP_Addr));
-    ServerRTSP_Addr.sin_family = AF_INET;
-    ServerRTSP_Addr.sin_addr.s_addr = INADDR_ANY;
-    ServerRTSP_Addr.sin_port = htons(RTSP_Client_PortNum);
-    // bind(RTSP_Socket_Server, (struct sockaddr *)&ClientRTSP_Addr, RTSP_AddrLen);
-    connect(RTSP_Socket_Server, (struct sockaddr *)&ServerRTSP_Addr, sizeof(ServerRTSP_Addr));
-    memcpy(&rtsp_clipkt.PortNum, &rtpPOrt, sizeof(rtpPOrt));
-    send(RTSP_Socket_Server, &rtsp_clipkt, sizeof(rtsp_clipkt), 0);
+    memset(&RTSP_ServerAddr, 0, sizeof(RTSP_ServerAddr));
+    RTSP_ServerAddr.sin_family = AF_INET;
+    RTSP_ServerAddr.sin_addr.s_addr = INADDR_ANY;
+    RTSP_ServerAddr.sin_port = htons(RTSP_PortNumServer);
 
-    // valread = read(new_socket, &rtsp_srvpkt, sizeof(rtsp_srvpkt));
+    int RTSP_BytesRead, RTSP_FrameRead;
+    RTSP_AddSenderLen = sizeof(RTSP_ServerAddr);
+
+    rtsp_clipkt.PortNum = 2000;
+    memcpy(rtsp_clipkt.moviename, argv[3], sizeof(rtsp_clipkt.moviename));
+    cout << "movie from client send name " << rtsp_clipkt.moviename <<endl;
+    sendto(RTSP_Socket_Client, &rtsp_clipkt, sizeof(rtsp_clipkt), 0, (struct sockaddr *)&RTSP_ServerAddr, (socklen_t)RTSP_AddSenderLen); // rtsp is supposed to send it.
+    //BytesRead = recvfrom(Socket_Client, &Receivedpkt, sizeof(Receivedpkt), 0, (struct sockaddr *)&ServerAddr, &AddSenderLen);
+    shutdown(RTSP_Socket_Client, SHUT_RDWR);
+    /*******************/
 
     int PortNumServer = rtsp_clipkt.PortNum;
-    int opt = 1;
+    cout << "rtpSERVER listening on port : " << PortNumServer << endl;
     struct sockaddr_in ClientAddr, ServerAddr; // socket file descriptor for the server to connect to.
     int AddrLen = sizeof(ClientAddr);
     socklen_t AddSenderLen;
