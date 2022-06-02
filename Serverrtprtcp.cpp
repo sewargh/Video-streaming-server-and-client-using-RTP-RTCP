@@ -5,17 +5,18 @@ int numpktsent = 0;
 int numoctsent = 0;
 void print_report()
 {
-
     cout << "RR packet \n"
-         << "Version :" << rtcp_rr.version << "   Padding :" << rtcp_rr.p << "        Reciever report count :" << rtcp_rr.rcount << "     Packet type :" << rtcp_rr.pt << endl;
-    cout << "Lenght(in words) :" << rtcp_rr.wordlen << "  Receiver generating this report :" << rtcp_rr.rssrc << "  SSRC :" << rtcp_rr.sssrc << endl;
-    cout << "Fraction of lost packets :" << rtcp_rr.bfraction << " Cumulative NO. of packets lost :" << rtcp_rr.blost << endl;
-    cout << "Last sequence number recieved :" << rtcp_rr.lastseq << "        Jitter :" << rtcp_rr.jitter << endl;
-    cout << "Last SR packet :" << rtcp_rr.lsr << "        Delay from last SR packet :" << rtcp_rr.dlsr << endl;
+         << "|Version: " << rtcp_rr.version << "\t|Padding: " << rtcp_rr.p << "\t|Reciever report count: " << rtcp_rr.rcount << "\t|Packet type: " << rtcp_rr.pt << endl;
+    cout << "|Lenght(in words): " << rtcp_rr.wordlen << "\t|Receiver generating this report: " << rtcp_rr.rssrc << "\t|SSRC: " << rtcp_rr.sssrc << endl;
+    cout << "|Fraction of lost packets: " << rtcp_rr.bfraction << "\t|Cumulative NO. of packets lost:" << rtcp_rr.blost << endl;
+    cout << "|Last sequence number recieved: " << rtcp_rr.lastseq << "\t|Jitter: " << rtcp_rr.jitter << endl;
+    cout << "|Last SR packet: " << rtcp_rr.lsr << "\t|Delay from last SR packet: " << rtcp_rr.dlsr << endl;
+    cout << endl
+         << endl;
 }
 void *rtpfunc(void *port)
 {
-    int PortNum = (int64_t)port;
+    int PortNum = (int)(intptr_t)port;
     char Buffer[10000];
     int opt = 1;
     struct sockaddr_in ServerAddr; // socket file descriptor for the server to connect to.
@@ -131,7 +132,7 @@ void *rtpfunc(void *port)
 void *rtcpfunc(void *portnum)
 {
     bool flag = false;
-    int PortNum = (int64_t)portnum;
+    int PortNum = (int)(intptr_t)portnum;
     // cout << "port rtcp " << PortNum << endl;
     char Buffer[10000];
     int opt = 1;
@@ -172,7 +173,6 @@ void *rtcpfunc(void *portnum)
     cout << "RTCP Waiting on port " << PortNum << endl;
     BytesRead = recvfrom(Socket_Server, Buffer, 10000, 0, (struct sockaddr *)&RTCP_Client_Addr, &ClientAddLen);
     Buffer[BytesRead] = 0;
-    sendto(Socket_Server, &rtcp_sr, sizeof(rtcp_sr), 0, (struct sockaddr *)&RTCP_Client_Addr, ClientAddLen);
     {
         rtcp_bye.version &= ~(1UL << 0);
         rtcp_bye.version |= 1UL << 1;
@@ -231,7 +231,6 @@ void *rtcpfunc(void *portnum)
         rtcp_sr.octsent = numoctsent;
         rtcp_sr.ntp_secfrac = time(NULL) + 2208988800;
         rtcp_sr.rtp_ts = time(NULL);
-        cout << "before rtcpserver rcvfrom " << endl;
         if (sendto(Socket_Server, &rtcp_sr, sizeof(rtcp_sr), 0, (struct sockaddr *)&RTCP_Client_Addr, ClientAddLen) == -1)
         {
             cout << "Error in sending RTCP SR packet "
@@ -240,7 +239,6 @@ void *rtcpfunc(void *portnum)
                  << endl;
             return 0;
         }
-        cout << "after rtspserver sending " << endl;
         if (flag == true)
         {
             if (sendto(Socket_Server, &rtcp_sr, sizeof(rtcp_sr), 0, (struct sockaddr *)&RTCP_Client_Addr, ClientAddLen) == -1)
@@ -253,7 +251,7 @@ void *rtcpfunc(void *portnum)
             }
         }
 
-        recvfrom(Socket_Server, &rtcp_rr, 10000, 0, (struct sockaddr *)&RTCP_Client_Addr, &ClientAddLen);
+        recvfrom(Socket_Server, &rtcp_rr, sizeof(rtcp_rr), 0, (struct sockaddr *)&RTCP_Client_Addr, &ClientAddLen);
         print_report();
         // memset(&rtcp_sr, 0, sizeof(rtcp_sr));
         // memcpy(rtcp_sr.wordlen, 16, sizeof(rtcp_sr.wordlen));
@@ -269,12 +267,13 @@ int main(int argc, char const *argv[])
     int PortNum = atoi(argv[1]); // SHOULD BE FOR RTSP SOCKET. BUT I WILL USE IT UNTIL WE IMPLEMENT RTSP.
     pthread_t rtp, rtcp;
     int rc = pthread_create(&rtp, NULL, rtpfunc, (void *)PortNum);
+    int rtcpport = PortNum + 1;
     if (rc)
     {
         cout << "ERROR; couldn't creat thread 1 \n";
         return (0);
     }
-    rc = pthread_create(&rtcp, NULL, rtcpfunc, (void *)PortNum + 1);
+    rc = pthread_create(&rtcp, NULL, rtcpfunc, (void *)rtcpport);
     if (rc)
     {
         cout << "ERROR; couldn't creat thread 2 \n";
