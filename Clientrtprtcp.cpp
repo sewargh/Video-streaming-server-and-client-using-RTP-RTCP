@@ -6,9 +6,11 @@ int sts[500];
 int rts[500];
 int index_s = 0;
 int index_r = 0;
+int numpktsend5 = 0;
+
 void *rtp_client_func(void *PORT)
 {
-    int PortNumServer = (int64_t)PORT;
+    int PortNumServer = (int)(intptr_t)PORT;
     int opt = 1;
     struct sockaddr_in ClientAddr, ServerAddr; // socket file descriptor for the server to connect to.
     int AddrLen = sizeof(ClientAddr);
@@ -64,13 +66,11 @@ void *rtp_client_func(void *PORT)
     sendto(Socket_Client, request, sizeof(request), 0, (struct sockaddr *)&ServerAddr, (socklen_t)AddSenderLen); // rtsp is supposed to send it.
     // BytesRead = recvfrom(Socket_Client, &Receivedpkt, sizeof(Receivedpkt), 0, (struct sockaddr *)&ServerAddr, &AddSenderLen);
 
-    if (mkdir("vid2", 0777) == -1)
-        cout << strerror(errno) << endl;
+    mkdir("vid2", 0777) == -1;
 
     CImgDisplay disp;
     for (int i = 1; i <= 500; i++)
     {
-        cout << i << " ";
         Receivedpkt.buf;
         char name[1000] = {};
         sprintf(name, "vid2/image%03d.jpg", i);
@@ -102,6 +102,7 @@ void *rtp_client_func(void *PORT)
         numpktsent++;
         sts[index_s] = Receivedpkt.Timestamp;
         rts[index_r] = time(NULL);
+        numpktsend5++;
         pthread_mutex_unlock(&mutex);
     }
 
@@ -113,7 +114,7 @@ void *rtcp_client_func(void *PORTNUM)
     bool flag = false;
     int d = 0;
     int j = 0;
-    int PortNumServer = (int64_t)PORTNUM;
+    int PortNumServer = (int)(intptr_t)PORTNUM;
     int opt = 1;
     struct sockaddr_in ClientAddr, ServerAddr; // socket file descriptor for the server to connect to.
     int AddrLen = sizeof(ClientAddr);
@@ -161,27 +162,28 @@ void *rtcp_client_func(void *PORTNUM)
 
     rtcpclient_rr.sssrc = Receivedpkt.SSRC;
     rtcpclient_rr.lastseq = Receivedpkt.SeqNum;
-    cout << " when " << endl;
     int stlsr = 0;
     while (!flag)
     {
         sleep(5);
         if (numpktsent == 500)
             flag = true;
-            cout << "rtcpclient before rcvfrom " << endl;
-        recvfrom(Socket_Client, &rtcpclient_sr, 1000, 0, (struct sockaddr *)&ServerAddr, &AddSenderLen);
-            cout << "rtcp after rcvfrom " << endl;
+        recvfrom(Socket_Client, &rtcpclient_sr, sizeof(rtcpclient_sr), 0, (struct sockaddr *)&ServerAddr, &AddSenderLen);
         stlsr = time(NULL);
         cout << "SR packet \n"
              << "Version :" << rtcpclient_sr.version << "   Padding :" << rtcpclient_sr.p << "        Reciever report count :" << rtcpclient_sr.rcount << "     Packet type :" << rtcpclient_sr.pt << endl;
         cout << "Lenght(in words) :" << rtcpclient_sr.wordlen << "  SSRC :" << rtcpclient_sr.ssrc << "        NTP timestamp:" << rtcpclient_sr.ntp_secfrac << " RTP timestamp :" << rtcpclient_sr.rtp_ts << endl;
         cout << "NO. of packets sent :" << rtcpclient_sr.pksent << "        NO. of octets sent :" << rtcpclient_sr.octsent << endl;
+        cout << endl
+             << endl;
         if (flag == true)
         {
-            recvfrom(Socket_Client, &rtcpclient_bye, 1000, 0, (struct sockaddr *)&ServerAddr, &AddSenderLen);
+            recvfrom(Socket_Client, &rtcpclient_bye, sizeof(rtcpclient_bye), 0, (struct sockaddr *)&ServerAddr, &AddSenderLen);
             cout << "BYE packet \n"
                  << "Version :" << rtcpclient_bye.version << "   Padding :" << rtcpclient_bye.p << "        Source count :" << rtcpclient_bye.scount << "     Packet type :" << rtcpclient_bye.pt << endl;
             cout << "Lenght(in words) :" << rtcpclient_bye.wordlen << "  SSRC :" << rtcpclient_bye.ssrc << endl;
+            cout << endl
+                 << endl;
         }
         for (int i = numpktsent - 1; i <= numpktsent; i++)
         {
@@ -191,7 +193,7 @@ void *rtcp_client_func(void *PORTNUM)
         }
         rtcpclient_rr.jitter = j;
         rtcpclient_rr.bfraction = ((166 - numpktsent) / 166) * 256;
-        rtcpclient_rr.blost = rtcpclient_rr.blost + (166 - numpktsent);
+        rtcpclient_rr.blost = rtcpclient_rr.blost + (166 - numpktsend5);
 
         rtcpclient_rr.lsr = rtcpclient_sr.ntp_secfrac - 2208988800;
         rtcpclient_rr.dlsr = (time(NULL) - stlsr) / 65536;
@@ -204,6 +206,9 @@ void *rtcp_client_func(void *PORTNUM)
                  << endl;
             return 0;
         }
+        pthread_mutex_lock(&mutex);
+        numpktsend5 = 0;
+        pthread_mutex_unlock(&mutex);
     }
     shutdown(Socket_Client, SHUT_RDWR);
     return 0;
@@ -219,7 +224,8 @@ int main(int argc, char const *argv[])
         cout << "ERROR; couldn't creat thread 1 \n";
         return (0);
     }
-    rc = pthread_create(&rtcp_client, NULL, rtcp_client_func, (void *)PortNum + 1);
+    int rtcpport = PortNum + 1;
+    rc = pthread_create(&rtcp_client, NULL, rtcp_client_func, (void *)rtcpport);
     if (rc)
     {
         cout << "ERROR; couldn't creat thread 2 \n";
