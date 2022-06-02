@@ -1,42 +1,24 @@
 #include <iostream>
 #include <string.h>
-
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
 #include <pthread.h>
 #include <thread>
 #include "CImg.h"
 #include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include "struct.h"
+#include <ctime>
 
-using namespace cimg_library;
-using namespace std;
-//#define PortNum 5000
-#define MaxThreads 10
-struct RTP_pkt
-{
-    unsigned int V : 2;
-    unsigned int P : 1;
-    unsigned int X : 1;
-    unsigned int CC : 4;
-    unsigned int M : 1;
-    unsigned int PT : 7;
-    short int SeqNum;
-    uint32_t Timestamp;
-    int SSRC;
-    //CImg<unsigned char> img;
-    // char data[10000];
-} RTPpkt;
-// takes one argument which is the port number // argv[2] is ip address for server
+// takes one argument which is the port number.
 int main(int argc, char const *argv[])
 {
-    int PortNum = atoi(argv[1]);
+    int PortNum = atoi(argv[1]); // should be used for RTSP.
     char Buffer[10000];
     int opt = 1;
-    cout << "size of uint32_t " << sizeof(uint32_t) << endl;
-    cout << "size of unsigned int " << sizeof(unsigned int) << endl;
-    cout << "size of RTPpkt " << sizeof(RTPpkt) << endl;
     struct sockaddr_in ServerAddr; // socket file descriptor for the server to connect to.
     struct sockaddr_in ClientAddr;
     int AddrLen = sizeof(ServerAddr);
@@ -52,8 +34,10 @@ int main(int argc, char const *argv[])
 
     /******** Create An Address For Server To Communicate **********/
     memset(&ServerAddr, 0, sizeof(ServerAddr));
+    memset(&ClientAddr, 0, sizeof(ClientAddr));
+    bzero(&ServerAddr, sizeof(ServerAddr));
     ServerAddr.sin_family = AF_INET;
-    ServerAddr.sin_addr.s_addr = INADDR_ANY ;
+    ServerAddr.sin_addr.s_addr = htonl(INADDR_ANY);
     cout << "server ip " << ServerAddr.sin_addr.s_addr << endl;
     ServerAddr.sin_port = htons(PortNum);
 
@@ -66,76 +50,99 @@ int main(int argc, char const *argv[])
         return 0;
     }
     // puts the server socket in a passive mode, where it waits for the client to approach the server to make a connection.
-    memset(&RTPpkt, 0, sizeof(RTPpkt));
-    // memcpy(RTPpkt.data, "Hello from Server !\n", sizeof(RTPpkt.data));
+    memset(&RTP_Server_pkt, 0, sizeof(RTP_Server_pkt));
+    // memcpy(RTP_Server_pkt.data, "Hello from Server !\n", sizeof(RTP_Server_pkt.data));
 
-    RTPpkt.V &= ~(1UL << 0);
-    RTPpkt.V |= 1UL << 1;
-    cout << "V2 = " << RTPpkt.V;
-    RTPpkt.P &= ~(1UL << 0);
-    cout << "   |P0 = " << RTPpkt.P;
-    RTPpkt.X &= ~(1UL << 0);
-    cout << "   |X0 = " << RTPpkt.X;
-    RTPpkt.CC &= ~(1UL << 0);
-    RTPpkt.CC &= ~(1UL << 1);
-    RTPpkt.CC &= ~(1UL << 2);
-    RTPpkt.CC &= ~(1UL << 3);
-    cout << "   |CC0 = " << RTPpkt.CC;
-    RTPpkt.M &= ~(1UL << 0);
-    cout << "   |M0 = " << RTPpkt.M;
-    RTPpkt.PT &= ~(1UL << 0);
-    RTPpkt.PT |= 1UL << 1;
-    RTPpkt.PT &= ~(1UL << 2);
-    RTPpkt.PT |= 1UL << 3;
-    RTPpkt.PT |= 1UL << 4;
-    RTPpkt.PT &= ~(1UL << 5);
-    RTPpkt.PT &= ~(1UL << 6);
-    cout << "   |PT26 = " << RTPpkt.PT;
+    RTP_Server_pkt.V &= ~(1UL << 0);
+    RTP_Server_pkt.V |= 1UL << 1;
+    RTP_Server_pkt.P &= ~(1UL << 0);
+    RTP_Server_pkt.X &= ~(1UL << 0);
+    RTP_Server_pkt.CC &= ~(1UL << 0);
+    RTP_Server_pkt.CC &= ~(1UL << 1);
+    RTP_Server_pkt.CC &= ~(1UL << 2);
+    RTP_Server_pkt.CC &= ~(1UL << 3);
+    RTP_Server_pkt.M &= ~(1UL << 0);
+    RTP_Server_pkt.PT &= ~(1UL << 0);
+    RTP_Server_pkt.PT |= 1UL << 1;
+    RTP_Server_pkt.PT &= ~(1UL << 2);
+    RTP_Server_pkt.PT |= 1UL << 3;
+    RTP_Server_pkt.PT |= 1UL << 4;
+    RTP_Server_pkt.PT &= ~(1UL << 5);
+    RTP_Server_pkt.PT &= ~(1UL << 6);
     srand(time(0));
-    RTPpkt.SeqNum = rand() % 64535; // Make sure SeqNum is enough to hold the sent rtp packets for the 500 frames + other rtp pkts.((2^16-1) - 1000)
-    cout << "   |SeqNum = " << RTPpkt.SeqNum << endl;
-    RTPpkt.Timestamp = time(NULL);
+    RTP_Server_pkt.SeqNum = rand() % 64535; // Make sure SeqNum is enough to hold the sent rtp packets for the 500 frames + other rtp pkts.((2^16-1) - 1000)
+    RTP_Server_pkt.Timestamp;
     srand(time(0));
-    RTPpkt.SSRC = rand() % 4294967296;
-    cout << "SSRC " << RTPpkt.SSRC << endl;
+    RTP_Server_pkt.SSRC = rand() % 4294967296;
     /******** Listen To The Port to Any Connection **********/
-    // while (1)
-
-    // Block until receive message from a client
     ClientAddLen = sizeof(ClientAddr);
     int BytesRead;
     cout << "Waiting on port " << PortNum << endl;
     BytesRead = recvfrom(Socket_Server, Buffer, 10000, 0, (struct sockaddr *)&ClientAddr, &ClientAddLen);
     Buffer[BytesRead] = 0;
-    cout << " client ip after rcv " << ClientAddr.sin_addr.s_addr << endl;
-    cout << "#of read bytes = " << BytesRead << "\nData is : -" << Buffer << endl;
-    sendto(Socket_Server, &RTPpkt, sizeof(RTPpkt), 0, (struct sockaddr *)&ClientAddr, ClientAddLen);
-    cout << " client ip " << ClientAddr.sin_addr.s_addr << endl;
+    cout << " Requested movie name : " << Buffer << endl;
+    // char ClientIP[256];
+    // memset(ClientIP, 0, 256);
+    // inet_ntop(AF_INET, &ClientAddr.sin_addr, ClientIP, 256); // number to pointer to string
+    sendto(Socket_Server, &RTP_Server_pkt, sizeof(RTP_Server_pkt), 0, (struct sockaddr *)&ClientAddr, ClientAddLen);
+    // cout << " client ip " << ClientAddr.sin_addr.s_addr << endl;
+    /*cout << "SENDING FIRST FRAME\n";
+    for (int i = 1; i <= 500; i++){
+    char name[1000];
+    sprintf(name,"vid/image%03d.jpg",i);
+    CImg<unsigned char>img(name);//img.load(name);
+    sendto(Socket_Server,img,sizeof(img),0,(struct sockaddr *)&ClientAddr,ClientAddLen);
+    usleep(30000);
+    }*/
+
     for (int i = 1; i <= 500; i++)
     {
-
+        if (i != 1)
+            RTP_Server_pkt.SeqNum += 1;
+        RTP_Server_pkt.buf;
         char name[1000];
-
         sprintf(name, "vid/image%03d.jpg", i);
-        CImg<unsigned char> img(name);
-        //RTPpkt.img(name);
-        if (sendto(Socket_Server, img, sizeof(img), 0, (struct sockaddr *)&ServerAddr, (socklen_t)AddrLen) == -1)
+        FILE *readFile = fopen(name, "rb");
+        fseek(readFile, 0, SEEK_END);
+        size_t ifsize = ftell(readFile);
+        fseek(readFile, 0, SEEK_SET);
+
+        if (readFile)
+        {
+            if (fread(RTP_Server_pkt.buf, 1, ifsize, readFile) <= 0)
+            {
+                cout << "No contents or error reading file \n";
+            }
+        }
+        else
+        {
+            cout << "Could not read audio file.\n";
+            return 0;
+        }
+        if (sendto(Socket_Server, &RTP_Server_pkt, sizeof(RTP_Server_pkt), 0, (struct sockaddr *)&ClientAddr, ClientAddLen) < 0)
+            cout << "FILE WAS NOT SENT \n"
+                 << strerror(errno) << "\n**** EXIT ****\n";
+        else
+            cout << "FILE SENT \n";
+        RTP_Server_pkt.Timestamp = time(NULL);
+        usleep(30000);
+        fclose(readFile);
+    }
+
+    /*for (int i = 1; i <= 500; i++)
+    {
+
+
+        if (sendto(Socket_Server, , 0, (struct sockaddr *)&ClientAddr, (socklen_t)ClientAddLen) == -1)
         {
             cout << "Error in sending frame #" << i << " SORRY!\n"
                  << strerror(errno) << "\n**** EXIT ****\n";
             return 0;
         }
         usleep(30000);
-        RTPpkt.SeqNum += 1;
-        RTPpkt.Timestamp = time(NULL);
-    }
-    
-    // static int HeaderSize = 12;
-    // cout << "Create thread \n";
-    // pthread_t Threads[MaxThreads];
-    // pthread_mutex_t MutexThreads[MaxThreads];
-    // pthread_cond_t threads_cond[MaxThreads];		// cond wait array.
-    // int threads_stat[MaxThreads];
+        RTP_Server_pkt.SeqNum += 1;
+        RTP_Server_pkt.Timestamp = time(NULL);
+    }*/
 
     shutdown(Socket_Server, SHUT_RDWR);
 
