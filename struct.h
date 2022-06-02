@@ -11,17 +11,20 @@
 #include <array>
 #include <cstdlib>
 #include <arpa/inet.h>
+#include <sys/stat.h>
+#include <filesystem>
+#include <fstream>
 #include "CImg.h"
 
 using namespace cimg_library;
 using namespace std;
 
-//rtcp client + server;
-typedef unsigned char  u_int8;
+// rtcp client + server;
+typedef unsigned char u_int8;
 typedef unsigned short u_int16;
-typedef unsigned long int   u_int64;
-typedef unsigned int   u_int32;
-typedef          short int16;
+typedef unsigned long int u_int64;
+typedef unsigned int u_int32;
+typedef short int16;
 
 /* Reception report*/
 struct
@@ -67,21 +70,7 @@ struct
     /* can't express trailing text for reason */
 } rtcp_bye;
 
-struct RTPServer_pkt
-{
-    unsigned int V : 2;
-    unsigned int P : 1;
-    unsigned int X : 1;
-    unsigned int CC : 4;
-    unsigned int M : 1;
-    unsigned int PT : 7;
-    unsigned short int SeqNum;
-    uint32_t Timestamp;
-    int SSRC;
-    char buf[10000];
-    // CImg<unsigned char> img;
-    //  char data[10000];
-} RTP_Server_pkt;
+
 
 /* Reception report*/
 struct
@@ -128,6 +117,21 @@ struct
     /* can't express trailing text for reason */
 } rtcpclient_bye;
 
+struct RTPServer_pkt
+{
+    unsigned int V : 2;
+    unsigned int P : 1;
+    unsigned int X : 1;
+    unsigned int CC : 4;
+    unsigned int M : 1;
+    unsigned int PT : 7;
+    unsigned short int SeqNum;
+    uint32_t Timestamp;
+    int SSRC;
+    int buf[10000];
+    // CImg<unsigned char> img;
+    //  char data[10000];
+} RTP_Server_pkt;
 struct RTPClient_pkt
 {
     unsigned int V : 2;
@@ -140,22 +144,28 @@ struct RTPClient_pkt
     uint32_t Timestamp;
     int SSRC;
     int buf[10000];
-}Receivedpkt;
+} Receivedpkt;
 
-//client side 
-struct  {
-       unsigned int v:2 ;           //version        
-       unsigned int p:1 ;           //padding
-       short int    CSeq ;          //sequence number
-       int          SSRC; 
+// client side
+struct
+{
+    unsigned int v : 2; // version
+    unsigned int p : 1; // padding
+    short int CSeq;     // sequence number
+    int SSRC;
+    char moviename[1024];
+    int PortNum;
 } rtsp_clipkt;
 
-//server side
-struct rtsppck {
-       unsigned int  v:2 ;               
-       unsigned int  p:1 ;         
-       int           SSRC;
-       short int     CSeq ;           
-       string        Pt;            //payload type
-       unsigned int  len;           //length 
+// server side
+struct
+{
+    unsigned int v : 2;
+    unsigned int p : 1;
+    int SSRC;
+    short int CSeq;
+    string Pt;        // payload type
+    unsigned int len; // length
+    char moviename[1024];
+    int PortNum;
 } rtsp_srvpkt;
