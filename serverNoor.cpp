@@ -16,29 +16,47 @@
 // takes one argument which is the port number.
 int main(int argc, char const *argv[])
 {
-    int valread;
+    int RTSP_PortNum = atoi(argv[1]);
+    struct sockaddr_in RTSP_ServerAddr; // socket file descriptor for the server to connect to.
+    struct sockaddr_in RTSP_ClientAddr;
+    int RTSP_AddrLen = sizeof(RTSP_ServerAddr);
+    socklen_t RTSP_ClientAddLen;
+    /******** Create A Socket To Communicate With Server **********/
+    int RTSP_Socket_Server = socket(AF_INET, SOCK_DGRAM, 0); // returns zero if creation succes else -1
+    if (RTSP_Socket_Server == -1)
+    {
+        cout << "Error in set socket reuseadd. SORRY!\n"
+             << strerror(errno) << "\n**** EXIT ****\n";
+        return 0;
+    }
+
+    /******** Create An Address For Server To Communicate **********/
+    memset(&RTSP_ServerAddr, 0, sizeof(RTSP_ServerAddr));
+    memset(&RTSP_ClientAddr, 0, sizeof(RTSP_ClientAddr));
+    bzero(&RTSP_ServerAddr, sizeof(RTSP_ServerAddr));
+    RTSP_ServerAddr.sin_family = AF_INET;
+    RTSP_ServerAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    RTSP_ServerAddr.sin_port = htons(RTSP_PortNum);
+
+    /******** Bind Address To Socket **********/
+    int RTSP_binderr = bind(RTSP_Socket_Server, (struct sockaddr *)&RTSP_ServerAddr, RTSP_AddrLen); // returns zero if creation succes else -1
+    if (RTSP_binderr == -1)
+    {
+        cout << "Error in binding socket. SORRY!\n"
+             << strerror(errno) << "\n**** EXIT ****\n";
+        return 0;
+    }
     memset(&rtsp_srvpkt, 0, sizeof(rtsp_srvpkt));
-    int RTSP_Server_PortNum = atoi(argv[1]);
-    struct sockaddr_in ServerRTSP_Addr;
-    memset(&ServerRTSP_Addr, 0, sizeof(ServerRTSP_Addr));
-    int RTSP_AddrLen = sizeof(ServerRTSP_Addr);
-    int RTSP_Socket_Server = socket(AF_INET, SOCK_STREAM, 0);
-    ServerRTSP_Addr.sin_family = AF_INET;
-    ServerRTSP_Addr.sin_addr.s_addr = INADDR_ANY;
-    ServerRTSP_Addr.sin_port = htons(RTSP_Server_PortNum);
-    bind(RTSP_Socket_Server, (struct sockaddr *)&ServerRTSP_Addr, RTSP_AddrLen);
-    listen(RTSP_Socket_Server, 1);
-
-    int new_socket = accept(RTSP_Socket_Server, (struct sockaddr *)&ServerRTSP_Addr, (socklen_t *)&RTSP_AddrLen);
-    valread = read(new_socket, &rtsp_srvpkt, sizeof(rtsp_srvpkt));
-
-    /*valread = read(new_socket, buffer, 1024);
-    printf("%s\n", buffer);
-    send(new_socket, hello, strlen(hello), 0);
-    printf("Hello message sent\n");*/
-
+    RTSP_ClientAddLen = sizeof(RTSP_ClientAddr);
+    int RTSP_BytesRead;
+    cout << "Waiting on port " << RTSP_PortNum << endl;
+    RTSP_BytesRead = recvfrom(RTSP_Socket_Server, &rtsp_srvpkt, sizeof(rtsp_srvpkt), 0, (struct sockaddr *)&RTSP_ClientAddr, &RTSP_ClientAddLen);
+    rtsp_srvpkt.moviename[RTSP_BytesRead] = 0;
+    cout << "Requested movie name : " << rtsp_srvpkt.moviename << endl;
+    cout << "rtp port : " << rtsp_srvpkt.PortNum << endl;
+    shutdown(RTSP_Socket_Server, SHUT_RDWR);
+    /************** RTP **************/
     int PortNum = rtsp_srvpkt.PortNum; // should be used for RTSP.
-    cout << "movie name " << rtsp_srvpkt.moviename<< endl;
     cout << "port " << PortNum << endl;
     char Buffer[10000];
     int opt = 1;
@@ -61,7 +79,7 @@ int main(int argc, char const *argv[])
     bzero(&ServerAddr, sizeof(ServerAddr));
     ServerAddr.sin_family = AF_INET;
     ServerAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    //cout << "server ip " << ServerAddr.sin_addr.s_addr << endl;
+    // cout << "server ip " << ServerAddr.sin_addr.s_addr << endl;
     ServerAddr.sin_port = htons(PortNum);
 
     /******** Bind Address To Socket **********/
@@ -151,7 +169,7 @@ int main(int argc, char const *argv[])
         usleep(30000);
         fclose(readFile);
     }
-    close(new_socket);
+    close(RTSP_Socket_Server);
     shutdown(Socket_Server, SHUT_RDWR);
 
     return 0;
