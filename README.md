@@ -1,4 +1,4 @@
-**Don't forget to add _vid_ file to your working code directory.**
+**Don't forget to add _vid_ directory(frames) to your working code directory.**
 
 ****Compile client.cpp:****
 
