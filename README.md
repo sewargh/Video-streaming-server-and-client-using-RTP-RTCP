@@ -1,19 +1,19 @@
-Don't forget to add vid file to your working code directory.
+**Don't forget to add _vid_ file to your working code directory.**
 
-****to compile client.cpp:****
+****Compile client.cpp:****
 
 g++ -o Client Client.cpp -O2 -L/usr/X11R6/lib -lm -lpthread -lX11
 
-****to execute client code:****
+****Execute client code:****
 
 ./Client IP PortNum
 <sub> --> where IP: One of your ip addresses, PortNum: Server Port Number for RTP udp socket </sub>
 
-****to compile server.cpp:****
+****Compile server.cpp:****
 
 g++ Server.cpp -o Server -pthread
 
-****to execute server code:****
+****Execute server code:****
 
 ./server PortNum
 <sub> --> where PortNum: Server Port Number for RTP udp socket </sub>
