@@ -18,4 +18,4 @@ g++ Server.cpp -o Server -pthread
 ./server PortNum
 <sub> --> where PortNum: Server Port Number for RTP udp socket </sub>
 
-_ []RTSP client+server code is commented in the .cpp files because it is not complete.
+- [ ] RTSP client+server code is commented in the .cpp files because it is not complete.
