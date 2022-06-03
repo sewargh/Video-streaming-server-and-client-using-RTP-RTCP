@@ -1,13 +1,14 @@
 Don't forget to add vid file to your working code directory.
-# To compile client.cpp:
-g++ client.cpp client
+#TO COMPILE CLIENT.CPP:
+g++ -o Client Client.cpp -O2 -L/usr/X11R6/lib -lm -lpthread -lX11
 
-# To execute client code:
-./client x.x.x.x y --> where x.x.x.x: One of your ip addresses, y: Server port number
+TO EXECUTE CLIENT CODE:
+./Client IP PortNum
 
-# To compile server.cpp:
-g++ -o server server.cpp -O2 -L/usr/X11R6/lib -lm -lpthread -lX11
+#TO COMPILE SERVER.CPP:
+g++ Server.cpp -o Server -pthread
 
-# To execute server code:
-./server 5000 --> where y: server port number
+TO EXECUTE SERVER CODE:
+./server PortNum
 
+/* RTSP client+server code is commented in the .cpp files because it is not complete. */
