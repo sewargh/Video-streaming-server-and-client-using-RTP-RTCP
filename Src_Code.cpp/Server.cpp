@@ -74,7 +74,6 @@ void *rtpfunc(void *port)
     /******** Create An Address For Server To Communicate **********/
     memset(&ServerAddr, 0, sizeof(ServerAddr));
     memset(&ClientAddr, 0, sizeof(ClientAddr));
-    bzero(&ServerAddr, sizeof(ServerAddr));
     ServerAddr.sin_family = AF_INET;
     ServerAddr.sin_addr.s_addr = htonl(INADDR_ANY);
     ServerAddr.sin_port = htons(PortNum);
@@ -87,7 +86,6 @@ void *rtpfunc(void *port)
              << strerror(errno) << "\n**** EXIT ****\n";
         return 0;
     }
-    // puts the server socket in a passive mode, where it waits for the client to approach the server to make a connection.
     memset(&RTP_Server_pkt, 0, sizeof(RTP_Server_pkt));
     // memcpy(RTP_Server_pkt.data, "Hello from Server !\n", sizeof(RTP_Server_pkt.data));
     {
@@ -119,6 +117,7 @@ void *rtpfunc(void *port)
     pthread_mutex_lock(&mutex);
     cout << "RTP Waiting on port " << PortNum << endl;
     pthread_mutex_unlock(&mutex);
+    // puts the server socket in a passive mode, where it waits for the client to approach the server to make a connection.
     BytesRead = recvfrom(Socket_Server, Buffer, 10000, 0, (struct sockaddr *)&ClientAddr, &ClientAddLen);
     Buffer[BytesRead] = 0;
     // cout << "Requested movie name : " << Buffer << endl;
